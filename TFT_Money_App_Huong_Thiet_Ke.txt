@@ -1,0 +1,185 @@
+TFT Money App - Huong thiet ke moi
+Ngay: 2026-05-03
+
+1. KET LUAN CHOT HUONG
+- Khong viet backend rieng.
+- Khong quan ly rule trong he thong.
+- Frontend tinh tien theo rule mac dinh.
+- Supabase Postgres luu ket qua, lich su, ledger va chay RPC cho cac thao tac ghi can transaction.
+- Group Fund de mo rong sau, khong lam trong phase dau.
+- Auth don gian bang admin key, nhung nen kiem tra qua RPC de frontend khong doc truc tiep key tu bang configuration.
+
+2. CONG NGHE DE XUAT
+Frontend:
+- Vite + React + TypeScript.
+- UI kit: shadcn/ui + Tailwind CSS, hoac Mantine neu muon code form/table nhanh hon.
+- Data fetching: TanStack Query.
+- Form/validation: react-hook-form + Zod.
+- Supabase client: @supabase/supabase-js.
+- Format tien: helper rieng formatVnd(), parseMoneyInput().
+
+Database/backend-lite:
+- Supabase Free: Postgres, SQL views, RPC functions.
+- Khong dung Supabase Auth email/password trong phase dau.
+- Khong cho frontend insert/update/delete truc tiep vao bang quan trong.
+- Cac write action nen di qua RPC: check_admin_key, create_match, void_match.
+
+Deploy:
+- Cloudflare Pages hoac Vercel static deploy qua GitHub.
+- Khuyen dung Cloudflare Pages neu chi deploy SPA static.
+
+3. PHAM VI PHASE DAU
+Lam:
+- Login Admin bang access key.
+- Quan ly nguoi choi.
+- Tao tran TFT.
+- Tao tran Billiard.
+- Preview ket qua truoc khi luu.
+- Match history.
+- Match detail.
+- Dashboard so du/lai lo tung nguoi.
+- Void match co reversal ledger.
+
+Chua lam:
+- Group Fund day du.
+- Quan ly rule.
+- Debt period phuc tap.
+- Settlement ngoai doi neu chua can ngay.
+- Supabase Auth email/password.
+
+4. LUONG TAO TRAN TFT
+Input:
+- Game type = TFT.
+- So nguoi: 3 hoac 4.
+- Chon player.
+- Nhap placement tung player.
+- Tick penalty top2/top8 neu co.
+- Nhap note neu can.
+
+Rule 3 nguoi:
+- Hang 1: +100,000 VND.
+- Hang 2: -50,000 VND.
+- Hang 3: -50,000 VND.
+- Penalty top2/top8: nguoi bi penalty -10,000 VND, nguoi nhat +10,000 VND.
+
+Rule 4 nguoi:
+- Hang 1: +70,000 VND.
+- Hang 2: +30,000 VND.
+- Hang 3: -50,000 VND.
+- Hang 4: -50,000 VND.
+- Penalty top2/top8: nguoi bi penalty -10,000 VND, nguoi nhat +10,000 VND.
+
+Frontend tinh:
+- base_amount theo placement.
+- penalty_lost = penalty_count * -10,000.
+- winner_penalty_bonus = tong penalty_count * 10,000 neu player la hang 1.
+- net_amount = base_amount + penalty_lost + winner_penalty_bonus.
+- Validate tong net_amount = 0.
+
+Payload gui len Supabase:
+- game_type: TFT.
+- played_at.
+- note.
+- metadata: participant_count, rule_code, penalty_amount.
+- participants: player_id, placement, net_amount, metadata penalties.
+
+5. LUONG TAO TRAN BILLIARD
+Input:
+- Game type = BILLIARD.
+- Chon players.
+- Khong can placement.
+- Nhap net_amount tung nguoi duoc/mat.
+- Validate tong net_amount = 0.
+- Confirm roi gui participants len Supabase.
+
+6. AUTH DON GIAN
+Bang configuration:
+- Luu admin_key_hash, khong nen luu raw key.
+
+Bang app_sessions:
+- Luu token_hash, role, expires_at.
+- Frontend chi giu raw session_token trong localStorage.
+
+Luon dung RPC:
+- check_admin_key(input_key): tra session_token neu dung.
+- create_match(payload, session_token): kiem tra session truoc khi ghi.
+- void_match(match_id, reason, session_token): kiem tra session truoc khi void.
+
+7. DATA MODEL CHINH
+configuration:
+- key, value, updated_at.
+
+app_sessions:
+- id, token_hash, role, expires_at, created_at.
+
+players:
+- id, display_name, slug, avatar_url, is_active, created_at, updated_at.
+
+matches:
+- id, game_type, status, note, played_at, metadata, created_by_session_id, created_at, voided_at, void_reason.
+
+match_participants:
+- id, match_id, player_id, placement, net_amount, metadata.
+
+ledger_events:
+- id, event_type, match_id, note, occurred_at, created_by_session_id, created_at.
+
+ledger_lines:
+- id, event_id, player_id, amount, metadata.
+
+Views:
+- v_player_balances.
+- v_match_history.
+- v_dashboard_summary.
+- v_player_stats.
+
+8. NGUYEN TAC LEDGER
+- ledger la source of truth.
+- amount > 0: player duoc nhan/lai.
+- amount < 0: player mat/no.
+- create_match tao ledger event MATCH va ledger lines theo participants.
+- void_match khong xoa du lieu, chi tao ledger event VOID va reversal lines.
+
+9. UI ROUTES DE XUAT
+/login:
+- Nhap admin key.
+
+/dashboard:
+- Xem tong quan, balance tung player.
+
+/matches:
+- Lich su tran.
+
+/matches/new:
+- Tao tran TFT hoac Billiard.
+
+/matches/:id:
+- Chi tiet tran, participants, net amount, metadata, void action.
+
+/players:
+- Quan ly nguoi choi.
+
+/settings:
+- Cau hinh hien thi tien, session admin, app info.
+
+10. ROADMAP
+Phase 1 - Core:
+- Setup project.
+- Setup Supabase schema.
+- Login admin key.
+- Players CRUD.
+- Create match TFT/Billiard.
+- History/detail/dashboard.
+- Void match.
+
+Phase 2 - Settlement:
+- Ghi nhan nguoi A tra nguoi B.
+- Ledger event SETTLEMENT.
+- Xem balance sau settlement.
+
+Phase 3 - Group Fund:
+- Mo rong ledger cho account GROUP_FUND.
+- Fund contribution.
+- Fund advance.
+- Withdrawal.
+- Manual adjustment.
