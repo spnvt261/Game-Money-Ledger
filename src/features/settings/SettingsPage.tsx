@@ -1,23 +1,14 @@
 import {
   Banknote,
   CheckCircle2,
-  Database,
-  KeyRound,
-  LogOut,
   Settings2,
-  ShieldCheck,
   Trophy,
-  Wifi,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { MoneyText } from '@/components/MoneyText'
-import { NetworkStatusBadge } from '@/components/NetworkStatusBadge'
 import { PageHeader } from '@/components/PageHeader'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -25,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { useAuth } from '@/features/auth/useAuth'
 import {
   getTftBaseAmount,
   TFT_PENALTY_AMOUNT,
@@ -33,23 +23,14 @@ import {
   TFT_RULE_CODE_4P,
 } from '@/features/matches/tftRules'
 import { appConfig } from '@/lib/env'
-import { MONEY_DISPLAY_FORMAT_OPTIONS } from '@/lib/money'
+import {
+  MONEY_DISPLAY_FORMAT_OPTIONS,
+  type MoneyDisplayFormat,
+} from '@/lib/money'
 import { useMoneyDisplayFormat } from '@/lib/moneyPreferences'
-import { supabaseConfig, isSupabaseConfigured } from '@/lib/supabaseClient'
-import { useNetworkStatus } from '@/lib/useNetworkStatus'
-import { cn } from '@/lib/utils'
 
-const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'short',
-  timeStyle: 'short',
-})
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return 'Không xác định'
-
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Không xác định' : dateTimeFormatter.format(date)
-}
+const selectClassName =
+  'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50'
 
 function SettingRow({
   label,
@@ -102,42 +83,20 @@ function RuleCard({
 }
 
 export function SettingsPage() {
-  const navigate = useNavigate()
-  const network = useNetworkStatus()
-  const { logout, session } = useAuth()
   const { displayFormat, setDisplayFormat } = useMoneyDisplayFormat()
-
-  const handleLogout = () => {
-    const confirmed = window.confirm('Đăng xuất khỏi phiên quản trị hiện tại?')
-
-    if (!confirmed) {
-      return
-    }
-
-    logout()
-    navigate('/login', { replace: true })
-  }
+  const selectedMoneyOption =
+    MONEY_DISPLAY_FORMAT_OPTIONS.find((option) => option.value === displayFormat) ??
+    MONEY_DISPLAY_FORMAT_OPTIONS[0]
 
   return (
     <div className="space-y-7">
       <PageHeader
         eyebrow="Cài đặt"
         title="Cài đặt"
-        description="Kiểm tra cấu hình ứng dụng, phiên quản trị, kết nối Supabase và rule đang dùng."
+        description="Cấu hình hiển thị tiền và kiểm tra rule đang dùng."
       />
 
-      {!isSupabaseConfigured ? (
-        <Alert>
-          <Database className="size-4" />
-          <AlertTitle>Thiếu cấu hình Supabase</AlertTitle>
-          <AlertDescription>
-            App vẫn mở được nhưng các thao tác đọc/ghi dữ liệu sẽ không hoạt động cho
-            đến khi bổ sung biến môi trường còn thiếu.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <section className="grid gap-4 lg:grid-cols-4">
+      <section className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -158,76 +117,6 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle>Supabase</CardTitle>
-                <CardDescription>URL và anon key</CardDescription>
-              </div>
-              <Database className="size-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Badge variant={isSupabaseConfigured ? 'success' : 'warning'}>
-              {isSupabaseConfigured ? 'Đã cấu hình' : 'Thiếu env'}
-            </Badge>
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-              {isSupabaseConfigured
-                ? 'VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY đã có.'
-                : `Thiếu: ${supabaseConfig.missingKeys.join(', ')}`}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle>Kết nối</CardTitle>
-                <CardDescription>Trạng thái mạng hiện tại</CardDescription>
-              </div>
-              <Wifi className="size-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <NetworkStatusBadge
-              status={network.status}
-              latencyMs={network.latencyMs}
-            />
-            <Button size="sm" variant="outline" onClick={() => void network.checkNow()}>
-              Kiểm tra lại
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle>Phiên quản trị</CardTitle>
-                <CardDescription>Session đang dùng</CardDescription>
-              </div>
-              <ShieldCheck className="size-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Badge variant={session ? 'success' : 'warning'}>
-              <ShieldCheck />
-              {session ? 'Đang đăng nhập admin' : 'Chưa đăng nhập'}
-            </Badge>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Hết hạn: {formatDateTime(session?.expiresAt)}
-            </p>
-            <Button size="sm" variant="outline" onClick={handleLogout}>
-              <LogOut />
-              Đăng xuất
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
                 <CardTitle>Hiển thị tiền</CardTitle>
                 <CardDescription>Định dạng VND dùng toàn app</CardDescription>
               </div>
@@ -235,28 +124,31 @@ export function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid gap-2">
-              {MONEY_DISPLAY_FORMAT_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  aria-pressed={displayFormat === option.value}
-                  className={cn(
-                    'rounded-lg border bg-background p-3 text-left text-sm shadow-xs transition-colors hover:bg-accent',
-                    displayFormat === option.value &&
-                      'border-primary bg-accent text-accent-foreground ring-2 ring-primary/15',
-                  )}
-                  type="button"
-                  onClick={() => setDisplayFormat(option.value)}
-                >
-                  <span className="font-semibold">
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium"
+                htmlFor="moneyDisplayFormat"
+              >
+                Kiểu hiển thị
+              </label>
+              <select
+                id="moneyDisplayFormat"
+                className={selectClassName}
+                value={displayFormat}
+                onChange={(event) =>
+                  setDisplayFormat(event.target.value as MoneyDisplayFormat)
+                }
+              >
+                {MONEY_DISPLAY_FORMAT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
                     {option.label}
                     {option.value === 'compact-thousands' ? ' (mặc định)' : ''}
-                  </span>
-                  <span className="mt-1 block text-muted-foreground">
-                    {option.description}
-                  </span>
-                </button>
-              ))}
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {selectedMoneyOption.description}
+              </p>
             </div>
             <SettingRow
               label="Số dương"
@@ -270,32 +162,9 @@ export function SettingsPage() {
               label="Số cân bằng"
               value={<MoneyText value={0} variant="neutral" />}
             />
-            <p className="text-sm leading-6 text-muted-foreground">
-              Màu sắc chỉ là tín hiệu phụ; các màn chính đều có nhãn dương, âm hoặc
-              cân bằng để tránh nhầm lẫn.
-            </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle>Session storage</CardTitle>
-                <CardDescription>Khóa localStorage của admin session</CardDescription>
-              </div>
-              <KeyRound className="size-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <code className="break-all text-sm text-muted-foreground">
-                {appConfig.sessionStorageKey}
-              </code>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </section>
 
       <section className="space-y-4">
         <div className="flex items-center gap-3">

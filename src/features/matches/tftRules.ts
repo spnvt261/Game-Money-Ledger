@@ -81,9 +81,9 @@ export function sumNetAmount(participants: Array<{ netAmount: number }>) {
   return participants.reduce((sum, participant) => sum + participant.netAmount, 0)
 }
 
-function getPenaltyFlags(placement: number): TftPenaltyFlags {
+function getPenaltyFlags(placement: number, hasActualTop1: boolean): TftPenaltyFlags {
   return {
-    top2: placement === 2,
+    top2: placement === 2 && hasActualTop1,
     top8: placement === 8,
   }
 }
@@ -112,6 +112,7 @@ export function calculateTftResults({
 
   const placements = participants.map((participant) => participant.placement)
   const uniquePlacements = new Set(placements)
+  const hasActualTop1 = uniquePlacements.has(1)
 
   if (
     uniquePlacements.size !== participantCount ||
@@ -127,7 +128,8 @@ export function calculateTftResults({
 
   const groupPlacementsByPlacement = getGroupPlacements(participants)
   const totalPenaltyCount = participants.reduce(
-    (sum, participant) => sum + countPenalties(getPenaltyFlags(participant.placement)),
+    (sum, participant) =>
+      sum + countPenalties(getPenaltyFlags(participant.placement, hasActualTop1)),
     0,
   )
 
@@ -138,7 +140,7 @@ export function calculateTftResults({
       throw new Error('Không tính được hạng nội bộ TFT.')
     }
 
-    const penalties = getPenaltyFlags(participant.placement)
+    const penalties = getPenaltyFlags(participant.placement, hasActualTop1)
     const penaltyCount = countPenalties(penalties)
     const baseAmount = getTftBaseAmount(participantCount, groupPlacement)
     const penaltyLost = penaltyCount * -TFT_PENALTY_AMOUNT

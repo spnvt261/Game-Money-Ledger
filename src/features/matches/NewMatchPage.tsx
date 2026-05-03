@@ -12,6 +12,7 @@ import {
   Trophy,
   UsersRound,
   WifiOff,
+  X,
 } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -59,6 +60,8 @@ interface TftDraft {
   slotId: string
   playerId: string
   placement: PlacementValue
+  netAmountInput: string
+  netAmountEdited: boolean
 }
 
 interface BilliardDraft {
@@ -103,21 +106,23 @@ function createBilliardDraft(): BilliardDraft {
 function buildTftDrafts(
   participantCount: TftParticipantCount,
   currentDrafts: TftDraft[] = [],
-) {
+): TftDraft[] {
   return Array.from({ length: participantCount }, (_, index) => {
     const currentDraft = currentDrafts[index]
-    const fallbackPlacement = index + 1
-    const placement =
+    const slotIndex = index + 1
+    const placement: PlacementValue =
       typeof currentDraft?.placement === 'number' &&
       currentDraft.placement >= 1 &&
       currentDraft.placement <= 8
         ? currentDraft.placement
-        : fallbackPlacement
+        : ''
 
     return {
-      slotId: currentDraft?.slotId ?? `tft-${fallbackPlacement}`,
+      slotId: currentDraft?.slotId ?? `tft-${slotIndex}`,
       playerId: currentDraft?.playerId ?? '',
       placement,
+      netAmountInput: currentDraft?.netAmountInput ?? '',
+      netAmountEdited: currentDraft?.netAmountEdited ?? false,
     }
   })
 }
@@ -339,6 +344,156 @@ function PreviewGroup({
   )
 }
 
+interface ConfirmSaveDialogProps {
+  disabledReason: string | null
+  error: string | null
+  gameType: GameType
+  isSubmitting: boolean
+  onClose: () => void
+  onConfirm: () => void
+  open: boolean
+  rows: PreviewRow[]
+  totalNetAmount: number
+}
+
+function ConfirmSaveDialog({
+  disabledReason,
+  error,
+  gameType,
+  isSubmitting,
+  onClose,
+  onConfirm,
+  open,
+  rows,
+  totalNetAmount,
+}: ConfirmSaveDialogProps) {
+  if (!open) {
+    return null
+  }
+
+  const confirmDisabled = isSubmitting || Boolean(disabledReason)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-foreground/35 p-3 backdrop-blur-sm sm:items-center sm:justify-center"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <div
+        aria-modal="true"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-lg border bg-card text-card-foreground shadow-xl sm:max-w-2xl"
+        role="dialog"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b p-5">
+          <div>
+            <h2 className="text-lg font-semibold tracking-normal">
+              Xác nhận lưu trận
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Kiểm tra lại tiền từng người trước khi ghi ledger.
+            </p>
+          </div>
+          <Button
+            aria-label="Đóng"
+            disabled={isSubmitting}
+            size="icon"
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+          >
+            <X />
+          </Button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          {disabledReason ? (
+            <Alert>
+              <WifiOff className="size-4" />
+              <AlertTitle>Chưa thể lưu</AlertTitle>
+              <AlertDescription>{disabledReason}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4" />
+              <AlertTitle>Lưu trận thất bại</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm text-muted-foreground">Game</p>
+              <p className="mt-1 font-semibold">{gameType}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm text-muted-foreground">Tổng cộng</p>
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <MoneyText value={totalNetAmount} className="text-lg font-semibold" />
+                {totalNetAmount === 0 ? (
+                  <Badge variant="success">Bằng 0</Badge>
+                ) : (
+                  <Badge variant="destructive">Lệch tổng</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {rows.map((row) => (
+              <div
+                key={`${row.playerId}-${row.placement ?? 'manual'}-confirm`}
+                className="flex items-start gap-3 rounded-lg border bg-background p-3"
+              >
+                <PlayerAvatar
+                  avatarUrl={row.avatarUrl}
+                  displayName={row.displayName}
+                  className="size-9"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{row.displayName}</span>
+                    {row.placement ? (
+                      <Badge variant="secondary">Top {row.placement}</Badge>
+                    ) : null}
+                    {row.badges.map((badge) => (
+                      <Badge key={badge} variant="outline">
+                        {badge}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <MoneyText value={row.netAmount} className="font-semibold" />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              disabled={isSubmitting}
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
+              Kiểm tra lại
+            </Button>
+            <Button
+              disabled={confirmDisabled}
+              type="button"
+              onClick={onConfirm}
+            >
+              <Save />
+              {isSubmitting ? 'Đang lưu' : 'Xác nhận lưu'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function getSelectedPlayerIds(drafts: Array<{ playerId: string }>) {
   return drafts.map((draft) => draft.playerId).filter(Boolean)
 }
@@ -363,21 +518,42 @@ function renderPlacementOptions(
   selectedPlacements: number[],
   currentPlacement: PlacementValue,
 ) {
-  return Array.from({ length: 8 }, (_, index) => {
-    const placement = index + 1
+  return (
+    <>
+      <option value="">Chọn top</option>
+      {Array.from({ length: 8 }, (_, index) => {
+        const placement = index + 1
 
-    return (
-      <option
-        key={placement}
-        disabled={
-          selectedPlacements.includes(placement) && placement !== currentPlacement
-        }
-        value={placement}
-      >
-        Top {placement}
-      </option>
-    )
-  })
+        return (
+          <option
+            key={placement}
+            disabled={
+              selectedPlacements.includes(placement) &&
+              placement !== currentPlacement
+            }
+            value={placement}
+          >
+            Top {placement}
+          </option>
+        )
+      })}
+    </>
+  )
+}
+
+function getTftAmountInputValue(
+  draft: TftDraft,
+  calculatedAmount: number | undefined,
+) {
+  if (draft.netAmountEdited) {
+    return draft.netAmountInput
+  }
+
+  if (typeof calculatedAmount === 'number') {
+    return formatMoneyInputValue(String(calculatedAmount))
+  }
+
+  return draft.netAmountInput
 }
 
 export function NewMatchPage() {
@@ -398,6 +574,7 @@ export function NewMatchPage() {
   ])
   const [saveError, setSaveError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const sessionToken = session?.sessionToken
 
   const playersQuery = useQuery({
@@ -454,14 +631,28 @@ export function NewMatchPage() {
       })),
     })
   }, [tftCanCalculate, tftFormDrafts, tftParticipantCount])
+  const tftResultByPlayerId = useMemo(
+    () => new Map(tftResults.map((result) => [result.playerId, result])),
+    [tftResults],
+  )
 
   const tftPreviewRows = useMemo<PreviewRow[]>(
     () =>
       tftResults.map((result) => {
         const player = playerById.get(result.playerId)
+        const draft = tftFormDrafts.find(
+          (candidate) => candidate.playerId === result.playerId,
+        )
+        const netAmount = parseMoneyInput(
+          draft
+            ? getTftAmountInputValue(draft, result.netAmount)
+            : String(result.netAmount),
+        )
+        const amountOverridden = netAmount !== result.netAmount
         const badges = [
           result.metadata.top2 ? 'Dính top 2' : null,
           result.metadata.top8 ? 'Dính top 8' : null,
+          amountOverridden ? 'Đã chỉnh tiền' : null,
         ].filter((badge): badge is string => Boolean(badge))
         const reasons: PreviewReason[] = [
           {
@@ -484,17 +675,24 @@ export function NewMatchPage() {
           })
         }
 
+        if (amountOverridden) {
+          reasons.push({
+            label: 'Tiền lưu',
+            value: netAmount,
+          })
+        }
+
         return {
           playerId: result.playerId,
           displayName: getPlayerLabel(player),
           avatarUrl: player?.avatarUrl ?? null,
           placement: result.placement,
-          netAmount: result.netAmount,
+          netAmount,
           reasons,
           badges,
         }
       }),
-    [playerById, tftResults],
+    [playerById, tftFormDrafts, tftResults],
   )
 
   const billiardSelectedPlayerIds = getSelectedPlayerIds(billiardDrafts)
@@ -537,6 +735,7 @@ export function NewMatchPage() {
     .filter((row) => row.netAmount < 0)
     .sort((a, b) => a.netAmount - b.netAmount)
   const neutralRows = previewRows.filter((row) => row.netAmount === 0)
+  const confirmRows = [...positiveRows, ...negativeRows, ...neutralRows]
   const playedAtIso = toPlayedAtIso(playedAt)
 
   const matchPayload: CreateMatchPayload | null = (() => {
@@ -545,9 +744,13 @@ export function NewMatchPage() {
     }
 
     if (gameType === 'TFT') {
-      if (!tftCanCalculate || !validateZeroSum(tftResults)) {
+      if (!tftCanCalculate || !validateZeroSum(tftPreviewRows)) {
         return null
       }
+
+      const amountByPlayerId = new Map(
+        tftPreviewRows.map((row) => [row.playerId, row.netAmount]),
+      )
 
       return {
         game_type: 'TFT',
@@ -558,13 +761,23 @@ export function NewMatchPage() {
           rule_code: getTftRuleCode(tftParticipantCount),
           penalty_amount: TFT_PENALTY_AMOUNT,
           placement_input: 'actual_top_1_to_8',
+          amount_input: 'editable_after_calculation',
         } as Json,
-        participants: tftResults.map((result) => ({
-          player_id: result.playerId,
-          placement: result.placement,
-          net_amount: result.netAmount,
-          metadata: result.metadata as unknown as Json,
-        })),
+        participants: tftResults.map((result) => {
+          const netAmount = amountByPlayerId.get(result.playerId) ?? result.netAmount
+
+          return {
+            player_id: result.playerId,
+            placement: result.placement,
+            net_amount: netAmount,
+            metadata: {
+              ...result.metadata,
+              calculated_net_amount: result.netAmount,
+              final_net_amount: netAmount,
+              amount_overridden: netAmount !== result.netAmount,
+            } as unknown as Json,
+          }
+        }),
       }
     }
 
@@ -691,6 +904,7 @@ export function NewMatchPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.matchHistory }),
       ])
 
+      setConfirmDialogOpen(false)
       setSuccessMessage('Đã lưu trận thành công.')
       window.setTimeout(() => {
         navigate(result.matchId ? `/matches/${result.matchId}` : '/matches')
@@ -704,6 +918,7 @@ export function NewMatchPage() {
   const updateTftDraft = (slotId: string, patch: Partial<TftDraft>) => {
     setTftDrafts((drafts) => {
       const sizedDrafts = buildTftDrafts(tftParticipantCount, drafts)
+      const shouldResetCalculatedAmount = 'playerId' in patch || 'placement' in patch
       const editableDrafts =
         activePlayers.length > 0 && getSelectedPlayerIds(sizedDrafts).length === 0
           ? applyDefaultTftPlayers(
@@ -713,9 +928,19 @@ export function NewMatchPage() {
             )
           : sizedDrafts
 
-      return editableDrafts.map((draft) =>
-        draft.slotId === slotId ? { ...draft, ...patch } : draft,
-      )
+      return editableDrafts.map((draft) => {
+        if (draft.slotId !== slotId) {
+          return draft
+        }
+
+        return {
+          ...draft,
+          ...patch,
+          ...(shouldResetCalculatedAmount
+            ? { netAmountInput: '', netAmountEdited: false }
+            : {}),
+        }
+      })
     })
   }
 
@@ -733,10 +958,21 @@ export function NewMatchPage() {
   const handleParticipantCountChange = (count: TftParticipantCount) => {
     setTftParticipantCount(count)
     setTftDrafts((drafts) => {
-      const nextDrafts = buildTftDrafts(count, drafts)
+      const nextDrafts = buildTftDrafts(count, drafts).map((draft) => ({
+        ...draft,
+        netAmountInput: '',
+        netAmountEdited: false,
+      }))
       return activePlayers.length > 0
         ? applyDefaultTftPlayers(nextDrafts, count, activePlayers)
         : nextDrafts
+    })
+  }
+
+  const handleTftAmountChange = (slotId: string, value: string) => {
+    updateTftDraft(slotId, {
+      netAmountInput: formatMoneyInputValue(value),
+      netAmountEdited: true,
     })
   }
 
@@ -764,19 +1000,25 @@ export function NewMatchPage() {
     void playersQuery.refetch()
   }
 
+  const handleCloseConfirmDialog = () => {
+    if (createMatchMutation.isPending) {
+      return
+    }
+
+    setConfirmDialogOpen(false)
+  }
+
   const handleSave = () => {
     if (saveDisabledReason || !matchPayload || createMatchMutation.isPending) {
       return
     }
 
-    const confirmed = window.confirm(
-      `Lưu trận ${gameType} với tổng tiền ${formatVnd(totalNetAmount, {
-        showSign: false,
-        displayFormat,
-      })}?`,
-    )
+    setSaveError(null)
+    setConfirmDialogOpen(true)
+  }
 
-    if (!confirmed) {
+  const handleConfirmSave = () => {
+    if (saveDisabledReason || !matchPayload || createMatchMutation.isPending) {
       return
     }
 
@@ -936,57 +1178,91 @@ export function NewMatchPage() {
                     </div>
 
                     <div className="space-y-3">
-                      {tftFormDrafts.map((draft, index) => (
-                        <div
-                          key={draft.slotId}
-                          className="rounded-lg border bg-background p-4 shadow-xs"
-                        >
-                          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px]">
-                            <div className="space-y-2">
-                              <Label htmlFor={`${draft.slotId}-player`}>
-                                Người chơi {index + 1}
-                              </Label>
-                              <select
-                                id={`${draft.slotId}-player`}
-                                className={selectClassName}
-                                value={draft.playerId}
-                                onChange={(event) =>
-                                  updateTftDraft(draft.slotId, {
-                                    playerId: event.target.value,
-                                  })
-                                }
-                              >
-                                <option value="">Chọn người chơi</option>
-                                {renderPlayerOptions(
-                                  activePlayers,
-                                  tftSelectedPlayerIds,
-                                  draft.playerId,
-                                )}
-                              </select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor={`${draft.slotId}-placement`}>
-                                Top
-                              </Label>
-                              <select
-                                id={`${draft.slotId}-placement`}
-                                className={selectClassName}
-                                value={draft.placement}
-                                onChange={(event) =>
-                                  updateTftDraft(draft.slotId, {
-                                    placement: Number(event.target.value),
-                                  })
-                                }
-                              >
-                                {renderPlacementOptions(
-                                  tftSelectedPlacements,
-                                  draft.placement,
-                                )}
-                              </select>
+                      {tftFormDrafts.map((draft, index) => {
+                        const calculatedResult = tftResultByPlayerId.get(
+                          draft.playerId,
+                        )
+                        const amountInputValue = getTftAmountInputValue(
+                          draft,
+                          calculatedResult?.netAmount,
+                        )
+
+                        return (
+                          <div
+                            key={draft.slotId}
+                            className="rounded-lg border bg-background p-4 shadow-xs"
+                          >
+                            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_140px_180px]">
+                              <div className="space-y-2">
+                                <Label htmlFor={`${draft.slotId}-player`}>
+                                  Người chơi {index + 1}
+                                </Label>
+                                <select
+                                  id={`${draft.slotId}-player`}
+                                  className={selectClassName}
+                                  value={draft.playerId}
+                                  onChange={(event) =>
+                                    updateTftDraft(draft.slotId, {
+                                      playerId: event.target.value,
+                                    })
+                                  }
+                                >
+                                  <option value="">Chọn người chơi</option>
+                                  {renderPlayerOptions(
+                                    activePlayers,
+                                    tftSelectedPlayerIds,
+                                    draft.playerId,
+                                  )}
+                                </select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`${draft.slotId}-placement`}>
+                                  Top
+                                </Label>
+                                <select
+                                  id={`${draft.slotId}-placement`}
+                                  className={selectClassName}
+                                  value={draft.placement}
+                                  onChange={(event) =>
+                                    updateTftDraft(draft.slotId, {
+                                      placement: event.target.value
+                                        ? Number(event.target.value)
+                                        : '',
+                                    })
+                                  }
+                                >
+                                  {renderPlacementOptions(
+                                    tftSelectedPlacements,
+                                    draft.placement,
+                                  )}
+                                </select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`${draft.slotId}-amount`}>
+                                  Số tiền
+                                </Label>
+                                <Input
+                                  id={`${draft.slotId}-amount`}
+                                  disabled={!calculatedResult}
+                                  inputMode="text"
+                                  placeholder={
+                                    calculatedResult
+                                      ? 'Ví dụ: 50,000'
+                                      : 'Chọn đủ top trước'
+                                  }
+                                  value={amountInputValue}
+                                  onChange={(event) =>
+                                    handleTftAmountChange(
+                                      draft.slotId,
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 ) : (
@@ -1090,48 +1366,13 @@ export function NewMatchPage() {
           <Card>
             <CardHeader>
               <SectionTitle
-                description="Kiểm tra kết quả đã nhập và tổng tiền trước khi lưu."
-                icon={<Calculator className="size-5" />}
+                description="Người nhận tiền nằm trên, người mất tiền nằm dưới."
+                icon={<Trophy className="size-5" />}
                 step={3}
-                title="Nhập kết quả"
+                title="Xem trước & lưu"
               />
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Luật và cách nhập</p>
-                  {gameType === 'TFT' ? (
-                    <div className="mt-2 space-y-2">
-                      <Badge variant="secondary">
-                        {getTftRuleCode(tftParticipantCount)}
-                      </Badge>
-                      <p className="text-sm">
-                        Penalty tự tính từ top 2/top 8:{' '}
-                        <MoneyText value={TFT_PENALTY_AMOUNT} showSign={false} />
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-2 space-y-2">
-                      <Badge variant="secondary">Nhập tiền thủ công</Badge>
-                      <p className="text-sm text-muted-foreground">
-                        Hỗ trợ nhập 50k, -50k, 50,000 hoặc 50000.
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Tổng cộng</p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <MoneyText value={totalNetAmount} className="text-2xl font-semibold" />
-                    {totalNetAmount === 0 ? (
-                      <Badge variant="success">Bằng 0</Badge>
-                    ) : (
-                      <Badge variant="destructive">Lệch tổng</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-
+            <CardContent className="space-y-5">
               {saveDisabledReason && !createMatchMutation.isPending ? (
                 <Alert>
                   <WifiOff className="size-4" />
@@ -1147,19 +1388,7 @@ export function NewMatchPage() {
                   <AlertDescription>{saveError}</AlertDescription>
                 </Alert>
               ) : null}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <SectionTitle
-                description="Người nhận tiền nằm trên, người mất tiền nằm dưới."
-                icon={<Trophy className="size-5" />}
-                step={4}
-                title="Xem trước & lưu"
-              />
-            </CardHeader>
-            <CardContent className="space-y-5">
               {previewRows.length > 0 ? (
                 <>
                   <PreviewGroup
@@ -1204,6 +1433,18 @@ export function NewMatchPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmSaveDialog
+        disabledReason={saveDisabledReason}
+        error={saveError}
+        gameType={gameType}
+        isSubmitting={createMatchMutation.isPending}
+        onClose={handleCloseConfirmDialog}
+        onConfirm={handleConfirmSave}
+        open={confirmDialogOpen}
+        rows={confirmRows}
+        totalNetAmount={totalNetAmount}
+      />
 
       <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-30 border-y bg-background/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">

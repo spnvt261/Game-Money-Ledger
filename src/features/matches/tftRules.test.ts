@@ -59,9 +59,11 @@ describe('calculateTftResults', () => {
       -60_000,
     ])
     expect(validateZeroSum(results)).toBe(true)
+    expect(results[1].metadata.top2).toBe(true)
+    expect(results[2].metadata.top8).toBe(true)
   })
 
-  it('lets the group winner also lose a top2 penalty when their actual top is 2', () => {
+  it('does not mark top2 when there is no other player at actual top1', () => {
     const results = calculateTftResults({
       participantCount: 3,
       participants: [
@@ -86,6 +88,8 @@ describe('calculateTftResults', () => {
       -60_000,
     ])
     expect(results.map((result) => result.groupPlacement)).toEqual([1, 2, 3])
+    expect(results[0].metadata.top2).toBe(false)
+    expect(results[0].metadata.penalty_count).toBe(0)
     expect(validateZeroSum(results)).toBe(true)
   })
 

@@ -85,7 +85,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r bg-card/95 md:flex md:flex-col">
+        <aside className="hidden w-72 shrink-0 border-r bg-card/95 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start">
           <div className="flex h-20 items-center gap-3 border-b px-6">
             <div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Banknote className="size-5" />
@@ -96,7 +96,7 @@ export function AppShell() {
             </div>
           </div>
 
-          <nav className="flex-1 space-y-1 px-3 py-5">
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5">
             {navItems.map((item) => {
               const Icon = item.icon
               return (
