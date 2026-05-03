@@ -588,6 +588,7 @@ export function NewMatchPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.playerBalances }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.matchHistory }),
       ])
 
       setSuccessMessage('Đã lưu trận thành công.')

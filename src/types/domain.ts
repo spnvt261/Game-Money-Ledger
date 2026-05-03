@@ -1,6 +1,6 @@
 export type GameType = 'TFT' | 'BILLIARD'
 
-export type MatchStatus = 'ACTIVE' | 'VOIDED'
+export type MatchStatus = 'COMPLETED' | 'VOIDED'
 
 export type LedgerEventType = 'MATCH' | 'VOID' | 'SETTLEMENT' | 'FUTURE_FUND_EVENT'
 

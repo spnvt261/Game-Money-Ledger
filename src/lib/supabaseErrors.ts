@@ -101,6 +101,22 @@ export function handleSupabaseError(
     return 'Tổng tiền của trận phải bằng 0 trước khi lưu.'
   }
 
+  if (normalizedMessage.includes('void reason is required')) {
+    return 'Cần nhập lý do hủy trận.'
+  }
+
+  if (normalizedMessage.includes('match not found')) {
+    return 'Không tìm thấy trận.'
+  }
+
+  if (normalizedMessage.includes('only completed matches can be voided')) {
+    return 'Chỉ có thể hủy trận đang ở trạng thái completed. Trận đã void không thể hủy lần nữa.'
+  }
+
+  if (normalizedMessage.includes('original match ledger lines not found')) {
+    return 'Không tìm thấy bút toán gốc của trận để đảo.'
+  }
+
   if (error.code === '28000') {
     return 'Phiên hoặc admin key không hợp lệ. Vui lòng đăng nhập lại.'
   }
