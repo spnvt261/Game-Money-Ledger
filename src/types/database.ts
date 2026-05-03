@@ -314,6 +314,27 @@ export interface Database {
         }
         Returns: Json
       }
+      create_player: {
+        Args: {
+          display_name: string
+          slug: string
+          avatar_url: string | null
+          is_active: boolean
+          session_token: string
+        }
+        Returns: Json
+      }
+      update_player: {
+        Args: {
+          player_id: string
+          display_name: string
+          slug: string
+          avatar_url: string | null
+          is_active: boolean
+          session_token: string
+        }
+        Returns: Json
+      }
       void_match: {
         Args: {
           match_id: string

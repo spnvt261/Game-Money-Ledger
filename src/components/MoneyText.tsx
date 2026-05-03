@@ -7,9 +7,7 @@ interface MoneyTextProps {
   showSign?: boolean
 }
 
-export function MoneyText({ value, className, showSign = false }: MoneyTextProps) {
-  const sign = showSign && value > 0 ? '+' : ''
-
+export function MoneyText({ value, className, showSign = true }: MoneyTextProps) {
   return (
     <span
       className={cn(
@@ -20,8 +18,7 @@ export function MoneyText({ value, className, showSign = false }: MoneyTextProps
         className,
       )}
     >
-      {sign}
-      {formatVnd(value)}
+      {formatVnd(value, { showSign })}
     </span>
   )
 }

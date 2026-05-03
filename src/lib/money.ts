@@ -1,11 +1,28 @@
-const VND_FORMATTER = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
+const VND_NUMBER_FORMATTER = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 })
 
-export function formatVnd(value: number | null | undefined) {
-  return VND_FORMATTER.format(value ?? 0)
+interface FormatVndOptions {
+  showSign?: boolean
+}
+
+export function formatVnd(
+  value: number | null | undefined,
+  options: FormatVndOptions = {},
+) {
+  const amount = value ?? 0
+  const showSign = options.showSign ?? true
+  const formattedAmount = `${VND_NUMBER_FORMATTER.format(Math.abs(amount))} ₫`
+
+  if (amount > 0 && showSign) {
+    return `+${formattedAmount}`
+  }
+
+  if (amount < 0) {
+    return `-${formattedAmount}`
+  }
+
+  return formattedAmount
 }
 
 export function parseMoneyInput(value: string) {

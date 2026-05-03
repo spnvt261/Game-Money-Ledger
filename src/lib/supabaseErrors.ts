@@ -47,6 +47,29 @@ export function handleSupabaseError(
     return 'Admin key không đúng. Kiểm tra lại key và thử lại.'
   }
 
+  if (normalizedMessage.includes('display name is required')) {
+    return 'Tên người chơi là bắt buộc.'
+  }
+
+  if (normalizedMessage.includes('slug is required')) {
+    return 'Slug là bắt buộc.'
+  }
+
+  if (normalizedMessage.includes('slug must use lowercase')) {
+    return 'Slug chỉ dùng chữ thường, số và dấu gạch ngang.'
+  }
+
+  if (
+    normalizedMessage.includes('players_slug_key') ||
+    normalizedMessage.includes('duplicate key')
+  ) {
+    return 'Slug này đã được dùng cho người chơi khác.'
+  }
+
+  if (normalizedMessage.includes('player not found')) {
+    return 'Không tìm thấy người chơi cần cập nhật.'
+  }
+
   if (error.code === '28000') {
     return 'Phiên hoặc admin key không hợp lệ. Vui lòng đăng nhập lại.'
   }
