@@ -13,26 +13,14 @@ describe('calculateTftResults', () => {
         {
           playerId: 'player-a',
           placement: 1,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
         },
         {
           playerId: 'player-b',
-          placement: 2,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
+          placement: 3,
         },
         {
           playerId: 'player-c',
-          placement: 3,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
+          placement: 4,
         },
       ],
     })
@@ -46,33 +34,21 @@ describe('calculateTftResults', () => {
     expect(validateZeroSum(results)).toBe(true)
   })
 
-  it('applies top2 and top8 penalties in a 3-player TFT result', () => {
+  it('automatically applies top2 and top8 penalties from actual TFT top in a 3-player result', () => {
     const results = calculateTftResults({
       participantCount: 3,
       participants: [
         {
           playerId: 'player-a',
           placement: 1,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
         },
         {
           playerId: 'player-b',
           placement: 2,
-          penalties: {
-            top2: true,
-            top8: false,
-          },
         },
         {
           playerId: 'player-c',
-          placement: 3,
-          penalties: {
-            top2: false,
-            top8: true,
-          },
+          placement: 8,
         },
       ],
     })
@@ -85,6 +61,34 @@ describe('calculateTftResults', () => {
     expect(validateZeroSum(results)).toBe(true)
   })
 
+  it('lets the group winner also lose a top2 penalty when their actual top is 2', () => {
+    const results = calculateTftResults({
+      participantCount: 3,
+      participants: [
+        {
+          playerId: 'player-a',
+          placement: 2,
+        },
+        {
+          playerId: 'player-b',
+          placement: 3,
+        },
+        {
+          playerId: 'player-c',
+          placement: 8,
+        },
+      ],
+    })
+
+    expect(results.map((result) => result.netAmount)).toEqual([
+      110_000,
+      -50_000,
+      -60_000,
+    ])
+    expect(results.map((result) => result.groupPlacement)).toEqual([1, 2, 3])
+    expect(validateZeroSum(results)).toBe(true)
+  })
+
   it('calculates the default 4-player TFT result as zero-sum', () => {
     const results = calculateTftResults({
       participantCount: 4,
@@ -92,34 +96,18 @@ describe('calculateTftResults', () => {
         {
           playerId: 'player-a',
           placement: 1,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
         },
         {
           playerId: 'player-b',
-          placement: 2,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
+          placement: 3,
         },
         {
           playerId: 'player-c',
-          placement: 3,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
+          placement: 4,
         },
         {
           playerId: 'player-d',
-          placement: 4,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
+          placement: 5,
         },
       ],
     })
@@ -134,41 +122,25 @@ describe('calculateTftResults', () => {
     expect(validateZeroSum(results)).toBe(true)
   })
 
-  it('applies top2 and top8 penalties in a 4-player TFT result', () => {
+  it('automatically applies top2 and top8 penalties in a 4-player TFT result', () => {
     const results = calculateTftResults({
       participantCount: 4,
       participants: [
         {
           playerId: 'player-a',
           placement: 1,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
         },
         {
           playerId: 'player-b',
           placement: 2,
-          penalties: {
-            top2: true,
-            top8: false,
-          },
         },
         {
           playerId: 'player-c',
           placement: 3,
-          penalties: {
-            top2: false,
-            top8: false,
-          },
         },
         {
           playerId: 'player-d',
-          placement: 4,
-          penalties: {
-            top2: false,
-            top8: true,
-          },
+          placement: 8,
         },
       ],
     })
@@ -188,31 +160,19 @@ describe('calculateTftResults', () => {
         participantCount: 3,
         participants: [
           {
-            playerId: 'player-a',
-            placement: 1,
-            penalties: {
-              top2: false,
-              top8: false,
-            },
-          },
-          {
-            playerId: 'player-b',
-            placement: 1,
-            penalties: {
-              top2: false,
-              top8: false,
-            },
-          },
-          {
-            playerId: 'player-c',
-            placement: 3,
-            penalties: {
-              top2: false,
-              top8: false,
-            },
-          },
-        ],
-      }),
+          playerId: 'player-a',
+          placement: 1,
+        },
+        {
+          playerId: 'player-b',
+          placement: 1,
+        },
+        {
+          playerId: 'player-c',
+          placement: 3,
+        },
+      ],
+    }),
     ).toThrow()
   })
 })

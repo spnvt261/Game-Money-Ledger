@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { formatVnd } from '@/lib/money'
+import { useMoneyDisplayFormat } from '@/lib/moneyPreferences'
 
 type MoneyTextVariant = 'auto' | 'positive' | 'negative' | 'neutral'
 
@@ -27,6 +28,7 @@ export function MoneyText({
   variant = 'auto',
 }: MoneyTextProps) {
   const resolvedVariant = resolveVariant(value, variant)
+  const { displayFormat } = useMoneyDisplayFormat()
 
   return (
     <span
@@ -38,7 +40,7 @@ export function MoneyText({
         className,
       )}
     >
-      {formatVnd(value, { showSign })}
+      {formatVnd(value, { showSign, displayFormat })}
     </span>
   )
 }

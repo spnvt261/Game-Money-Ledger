@@ -149,11 +149,14 @@ function Breakdown({
   const baseAmount = getMetadataNumber(metadata, 'base_amount')
   const penaltyLost = getMetadataNumber(metadata, 'penalty_lost')
   const winnerPenaltyBonus = getMetadataNumber(metadata, 'winner_penalty_bonus')
+  const groupPlacement = getMetadataNumber(metadata, 'group_placement')
 
   return (
     <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
       <div className="rounded-md bg-muted/40 p-2">
-        <span className="block">Base</span>
+        <span className="block">
+          {groupPlacement ? `Base hạng nhóm ${groupPlacement}` : 'Base'}
+        </span>
         <MoneyText value={baseAmount ?? 0} className="mt-1 block font-semibold" />
       </div>
       <div className="rounded-md bg-muted/40 p-2">
@@ -161,7 +164,7 @@ function Breakdown({
         <MoneyText value={penaltyLost ?? 0} className="mt-1 block font-semibold" />
       </div>
       <div className="rounded-md bg-muted/40 p-2">
-        <span className="block">Bonus hạng 1</span>
+        <span className="block">Bonus nhất nhóm</span>
         <MoneyText
           value={winnerPenaltyBonus ?? 0}
           className="mt-1 block font-semibold"
@@ -208,7 +211,7 @@ function ParticipantMobileCard({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">{getPlayerName(participant)}</h3>
             {participant.placement ? (
-              <Badge variant="secondary">Hạng {participant.placement}</Badge>
+              <Badge variant="secondary">Top {participant.placement}</Badge>
             ) : null}
           </div>
           {gameType === 'TFT' ? (
@@ -295,7 +298,9 @@ function GeneralInfo({ detail }: { detail: MatchDetail }) {
                 <p className="mt-1 font-semibold">{ruleCode ?? 'Không có rule_code'}</p>
               </div>
               <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-sm text-muted-foreground">Penalty top2/top8</p>
+                <p className="text-sm text-muted-foreground">
+                  Penalty tự tính từ top 2/top 8
+                </p>
                 <MoneyText
                   value={penaltyAmount ?? 0}
                   showSign={false}
@@ -334,7 +339,7 @@ function ParticipantsSection({ detail }: { detail: MatchDetail }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Người chơi</TableHead>
-                {detail.gameType === 'TFT' ? <TableHead>Placement</TableHead> : null}
+                {detail.gameType === 'TFT' ? <TableHead>Top</TableHead> : null}
                 {detail.gameType === 'TFT' ? <TableHead>Penalty</TableHead> : null}
                 <TableHead>Breakdown</TableHead>
                 <TableHead className="text-right">Số tiền</TableHead>
@@ -356,7 +361,7 @@ function ParticipantsSection({ detail }: { detail: MatchDetail }) {
                   {detail.gameType === 'TFT' ? (
                     <TableCell>
                       {participant.placement ? (
-                        <Badge variant="secondary">Hạng {participant.placement}</Badge>
+                        <Badge variant="secondary">Top {participant.placement}</Badge>
                       ) : (
                         <span className="text-muted-foreground">--</span>
                       )}

@@ -136,7 +136,7 @@ on conflict (slug) do nothing;
 
 - Login bằng admin key: frontend gọi RPC `check_admin_key`, nhận `session_token` và lưu vào `localStorage`.
 - Players: tạo, sửa, ẩn/khôi phục người chơi qua RPC `create_player` và `update_player`.
-- Tạo TFT: chọn 3 hoặc 4 người, nhập hạng, tick penalty top2/top8, app tự tính kết quả zero-sum.
+- Tạo TFT: chọn 3 hoặc 4 người, nhập top thực tế 1-8; app tự tính penalty top 2/top 8 và kết quả zero-sum.
 - Tạo Billiard: nhập tiền thủ công từng người, app chỉ cho lưu khi tổng bằng `0`.
 - History/detail: xem danh sách trận, trạng thái, người chơi, tổng tiền và timeline ledger.
 - Void: chỉ void trận `COMPLETED`; hệ thống đổi status sang `VOIDED`, tạo ledger event `VOID` và bút toán đảo dấu để balance quay lại.

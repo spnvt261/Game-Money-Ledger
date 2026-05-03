@@ -94,7 +94,7 @@ export function handleSupabaseError(
     normalizedMessage.includes('tft participants require placement') ||
     normalizedMessage.includes('tft placements must be unique')
   ) {
-    return 'Thứ hạng TFT phải đủ, nằm trong số người chơi và không được trùng.'
+    return 'Top TFT phải nằm trong 1-8 và không được trùng.'
   }
 
   if (normalizedMessage.includes('total net_amount must equal 0')) {

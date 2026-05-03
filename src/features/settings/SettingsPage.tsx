@@ -33,8 +33,11 @@ import {
   TFT_RULE_CODE_4P,
 } from '@/features/matches/tftRules'
 import { appConfig } from '@/lib/env'
+import { MONEY_DISPLAY_FORMAT_OPTIONS } from '@/lib/money'
+import { useMoneyDisplayFormat } from '@/lib/moneyPreferences'
 import { supabaseConfig, isSupabaseConfigured } from '@/lib/supabaseClient'
 import { useNetworkStatus } from '@/lib/useNetworkStatus'
+import { cn } from '@/lib/utils'
 
 const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
@@ -102,6 +105,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const network = useNetworkStatus()
   const { logout, session } = useAuth()
+  const { displayFormat, setDisplayFormat } = useMoneyDisplayFormat()
 
   const handleLogout = () => {
     const confirmed = window.confirm('Đăng xuất khỏi phiên quản trị hiện tại?')
@@ -231,7 +235,29 @@ export function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SettingRow label="Đơn vị" value="VND" />
+            <div className="grid gap-2">
+              {MONEY_DISPLAY_FORMAT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  aria-pressed={displayFormat === option.value}
+                  className={cn(
+                    'rounded-lg border bg-background p-3 text-left text-sm shadow-xs transition-colors hover:bg-accent',
+                    displayFormat === option.value &&
+                      'border-primary bg-accent text-accent-foreground ring-2 ring-primary/15',
+                  )}
+                  type="button"
+                  onClick={() => setDisplayFormat(option.value)}
+                >
+                  <span className="font-semibold">
+                    {option.label}
+                    {option.value === 'compact-thousands' ? ' (mặc định)' : ''}
+                  </span>
+                  <span className="mt-1 block text-muted-foreground">
+                    {option.description}
+                  </span>
+                </button>
+              ))}
+            </div>
             <SettingRow
               label="Số dương"
               value={<MoneyText value={70_000} variant="positive" />}
@@ -290,7 +316,7 @@ export function SettingsPage() {
             <RuleLine label="Hai" value={getTftBaseAmount(3, 2)} />
             <RuleLine label="Ba" value={getTftBaseAmount(3, 3)} />
             <div className="rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
-              Penalty top2/top8: người dính mất{' '}
+              Penalty tự tính từ top 2/top 8: người dính mất{' '}
               <MoneyText value={-TFT_PENALTY_AMOUNT} className="font-semibold" />,
               người nhất nhận{' '}
               <MoneyText value={TFT_PENALTY_AMOUNT} className="font-semibold" /> cho
@@ -304,7 +330,7 @@ export function SettingsPage() {
             <RuleLine label="Ba" value={getTftBaseAmount(4, 3)} />
             <RuleLine label="Bốn" value={getTftBaseAmount(4, 4)} />
             <div className="rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
-              Penalty giống TFT 3 người: người dính mất{' '}
+              Penalty tự tính giống TFT 3 người: người dính mất{' '}
               <MoneyText value={-TFT_PENALTY_AMOUNT} className="font-semibold" />,
               người nhất nhận lại tổng penalty.
             </div>
@@ -316,7 +342,7 @@ export function SettingsPage() {
               tổng số tiền bắt buộc bằng 0.
             </div>
             <div className="rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
-              Ô nhập tiền hỗ trợ các dạng như 50k, -50k, 50.000 hoặc 50000.
+              Ô nhập tiền hỗ trợ các dạng như 50k, -50k, 50,000 hoặc 50000.
             </div>
             <Badge variant="success">
               <CheckCircle2 />

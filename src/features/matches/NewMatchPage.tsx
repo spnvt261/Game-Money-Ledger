@@ -45,7 +45,8 @@ import {
 } from '@/features/matches/tftRules'
 import { fetchPlayers } from '@/features/players/playersApi'
 import type { PlayerRecord } from '@/features/players/playersTypes'
-import { formatVnd, parseMoneyInput } from '@/lib/money'
+import { formatMoneyInputValue, formatVnd, parseMoneyInput } from '@/lib/money'
+import { useMoneyDisplayFormat } from '@/lib/moneyPreferences'
 import { queryKeys } from '@/lib/queryKeys'
 import { useNetworkStatus } from '@/lib/useNetworkStatus'
 import { cn } from '@/lib/utils'
@@ -58,8 +59,6 @@ interface TftDraft {
   slotId: string
   playerId: string
   placement: PlacementValue
-  top2: boolean
-  top8: boolean
 }
 
 interface BilliardDraft {
@@ -111,7 +110,7 @@ function buildTftDrafts(
     const placement =
       typeof currentDraft?.placement === 'number' &&
       currentDraft.placement >= 1 &&
-      currentDraft.placement <= participantCount
+      currentDraft.placement <= 8
         ? currentDraft.placement
         : fallbackPlacement
 
@@ -119,8 +118,6 @@ function buildTftDrafts(
       slotId: currentDraft?.slotId ?? `tft-${fallbackPlacement}`,
       playerId: currentDraft?.playerId ?? '',
       placement,
-      top2: currentDraft?.top2 ?? false,
-      top8: currentDraft?.top8 ?? false,
     }
   })
 }
@@ -138,6 +135,100 @@ function toPlayedAtIso(value: string) {
 
 function hasDuplicates(values: string[]) {
   return new Set(values).size !== values.length
+}
+
+const DEFAULT_TFT_PLAYER_KEYS = ['son', 'tien', 'duc']
+
+function normalizePlayerKey(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+function getDefaultTftPlayerIds(
+  players: PlayerRecord[],
+  participantCount: TftParticipantCount,
+) {
+  const selectedIds: string[] = []
+
+  for (const key of DEFAULT_TFT_PLAYER_KEYS) {
+    const player = players.find((candidate) => {
+      if (selectedIds.includes(candidate.id)) {
+        return false
+      }
+
+      return [candidate.displayName, candidate.slug]
+        .map(normalizePlayerKey)
+        .some((playerKey) => playerKey === key || playerKey.includes(key))
+    })
+
+    if (player) {
+      selectedIds.push(player.id)
+    }
+  }
+
+  for (const player of players) {
+    if (selectedIds.length >= participantCount) {
+      break
+    }
+
+    if (!selectedIds.includes(player.id)) {
+      selectedIds.push(player.id)
+    }
+  }
+
+  return selectedIds.slice(0, participantCount)
+}
+
+function applyDefaultTftPlayers(
+  drafts: TftDraft[],
+  participantCount: TftParticipantCount,
+  players: PlayerRecord[],
+) {
+  const activePlayerIds = new Set(players.map((player) => player.id))
+  const seenPlayerIds = new Set<string>()
+  const preservedPlayerIds = drafts.map((draft) => {
+    if (
+      !draft.playerId ||
+      !activePlayerIds.has(draft.playerId) ||
+      seenPlayerIds.has(draft.playerId)
+    ) {
+      return ''
+    }
+
+    seenPlayerIds.add(draft.playerId)
+    return draft.playerId
+  })
+  const defaultPlayerIds = getDefaultTftPlayerIds(players, participantCount)
+  const usedPlayerIds = new Set(preservedPlayerIds.filter(Boolean))
+
+  return drafts.map((draft, index) => {
+    const preservedPlayerId = preservedPlayerIds[index]
+
+    if (preservedPlayerId) {
+      return {
+        ...draft,
+        playerId: preservedPlayerId,
+      }
+    }
+
+    const fallbackPlayerId =
+      defaultPlayerIds.find((playerId) => !usedPlayerIds.has(playerId)) ??
+      players.find((player) => !usedPlayerIds.has(player.id))?.id ??
+      ''
+
+    if (fallbackPlayerId) {
+      usedPlayerIds.add(fallbackPlayerId)
+    }
+
+    return {
+      ...draft,
+      playerId: fallbackPlayerId,
+    }
+  })
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -214,7 +305,7 @@ function PreviewGroup({
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold">{row.displayName}</h3>
                     {row.placement ? (
-                      <Badge variant="secondary">Hạng {row.placement}</Badge>
+                      <Badge variant="secondary">Top {row.placement}</Badge>
                     ) : null}
                     {row.badges.map((badge) => (
                       <Badge key={badge} variant="outline">
@@ -269,11 +360,10 @@ function renderPlayerOptions(
 }
 
 function renderPlacementOptions(
-  participantCount: TftParticipantCount,
   selectedPlacements: number[],
   currentPlacement: PlacementValue,
 ) {
-  return Array.from({ length: participantCount }, (_, index) => {
+  return Array.from({ length: 8 }, (_, index) => {
     const placement = index + 1
 
     return (
@@ -284,7 +374,7 @@ function renderPlacementOptions(
         }
         value={placement}
       >
-        Hạng {placement}
+        Top {placement}
       </option>
     )
   })
@@ -295,8 +385,9 @@ export function NewMatchPage() {
   const queryClient = useQueryClient()
   const network = useNetworkStatus()
   const { session } = useAuth()
+  const { displayFormat } = useMoneyDisplayFormat()
   const [gameType, setGameType] = useState<GameType>('TFT')
-  const [playedAt, setPlayedAt] = useState(getDefaultPlayedAt)
+  const [playedAt] = useState(getDefaultPlayedAt)
   const [note, setNote] = useState('')
   const [tftParticipantCount, setTftParticipantCount] =
     useState<TftParticipantCount>(4)
@@ -324,13 +415,23 @@ export function NewMatchPage() {
     [activePlayers],
   )
 
-  const tftSelectedPlayerIds = getSelectedPlayerIds(tftDrafts)
-  const tftSelectedPlacements = tftDrafts
+  const tftFormDrafts = useMemo(() => {
+    const sizedDrafts = buildTftDrafts(tftParticipantCount, tftDrafts)
+
+    if (activePlayers.length === 0 || getSelectedPlayerIds(sizedDrafts).length > 0) {
+      return sizedDrafts
+    }
+
+    return applyDefaultTftPlayers(sizedDrafts, tftParticipantCount, activePlayers)
+  }, [activePlayers, tftDrafts, tftParticipantCount])
+
+  const tftSelectedPlayerIds = getSelectedPlayerIds(tftFormDrafts)
+  const tftSelectedPlacements = tftFormDrafts
     .map((draft) => draft.placement)
     .filter((placement): placement is number => typeof placement === 'number')
-  const tftHasMissingPlayers = tftDrafts.some((draft) => !draft.playerId)
+  const tftHasMissingPlayers = tftFormDrafts.some((draft) => !draft.playerId)
   const tftHasDuplicatePlayers = hasDuplicates(tftSelectedPlayerIds)
-  const tftHasMissingPlacements = tftDrafts.some((draft) => !draft.placement)
+  const tftHasMissingPlacements = tftFormDrafts.some((draft) => !draft.placement)
   const tftHasDuplicatePlacements = hasDuplicates(
     tftSelectedPlacements.map(String),
   )
@@ -347,16 +448,12 @@ export function NewMatchPage() {
 
     return calculateTftResults({
       participantCount: tftParticipantCount,
-      participants: tftDrafts.map((draft) => ({
+      participants: tftFormDrafts.map((draft) => ({
         playerId: draft.playerId,
         placement: Number(draft.placement),
-        penalties: {
-          top2: draft.top2,
-          top8: draft.top8,
-        },
       })),
     })
-  }, [tftCanCalculate, tftDrafts, tftParticipantCount])
+  }, [tftCanCalculate, tftFormDrafts, tftParticipantCount])
 
   const tftPreviewRows = useMemo<PreviewRow[]>(
     () =>
@@ -368,7 +465,7 @@ export function NewMatchPage() {
         ].filter((badge): badge is string => Boolean(badge))
         const reasons: PreviewReason[] = [
           {
-            label: `Base hạng ${result.placement}`,
+            label: `Base hạng nhóm ${result.groupPlacement}`,
             value: result.baseAmount,
           },
         ]
@@ -382,7 +479,7 @@ export function NewMatchPage() {
 
         if (result.winnerPenaltyBonus !== 0) {
           reasons.push({
-            label: 'Bonus hạng 1',
+            label: 'Bonus nhất nhóm',
             value: result.winnerPenaltyBonus,
           })
         }
@@ -460,6 +557,7 @@ export function NewMatchPage() {
           participant_count: tftParticipantCount,
           rule_code: getTftRuleCode(tftParticipantCount),
           penalty_amount: TFT_PENALTY_AMOUNT,
+          placement_input: 'actual_top_1_to_8',
         } as Json,
         participants: tftResults.map((result) => ({
           player_id: result.playerId,
@@ -538,11 +636,11 @@ export function NewMatchPage() {
       }
 
       if (tftHasMissingPlacements) {
-        return 'Cần chọn đủ thứ hạng TFT.'
+        return 'Cần chọn đủ top TFT.'
       }
 
       if (tftHasDuplicatePlacements) {
-        return 'Thứ hạng TFT không được trùng.'
+        return 'Top TFT không được trùng.'
       }
     } else {
       if (activePlayers.length < 2) {
@@ -559,7 +657,9 @@ export function NewMatchPage() {
     }
 
     if (totalNetAmount !== 0) {
-      return `Tổng tiền hiện tại là ${formatVnd(totalNetAmount)}. Tổng phải bằng 0.`
+      return `Tổng tiền hiện tại là ${formatVnd(totalNetAmount, {
+        displayFormat,
+      })}. Tổng phải bằng 0.`
     }
 
     if (!matchPayload) {
@@ -602,11 +702,21 @@ export function NewMatchPage() {
   })
 
   const updateTftDraft = (slotId: string, patch: Partial<TftDraft>) => {
-    setTftDrafts((drafts) =>
-      drafts.map((draft) =>
+    setTftDrafts((drafts) => {
+      const sizedDrafts = buildTftDrafts(tftParticipantCount, drafts)
+      const editableDrafts =
+        activePlayers.length > 0 && getSelectedPlayerIds(sizedDrafts).length === 0
+          ? applyDefaultTftPlayers(
+              sizedDrafts,
+              tftParticipantCount,
+              activePlayers,
+            )
+          : sizedDrafts
+
+      return editableDrafts.map((draft) =>
         draft.slotId === slotId ? { ...draft, ...patch } : draft,
-      ),
-    )
+      )
+    })
   }
 
   const updateBilliardDraft = (
@@ -622,12 +732,23 @@ export function NewMatchPage() {
 
   const handleParticipantCountChange = (count: TftParticipantCount) => {
     setTftParticipantCount(count)
-    setTftDrafts((drafts) => buildTftDrafts(count, drafts))
+    setTftDrafts((drafts) => {
+      const nextDrafts = buildTftDrafts(count, drafts)
+      return activePlayers.length > 0
+        ? applyDefaultTftPlayers(nextDrafts, count, activePlayers)
+        : nextDrafts
+    })
   }
 
   const handleQuickAmount = (slotId: string, amount: number) => {
     updateBilliardDraft(slotId, {
-      netAmountInput: String(amount),
+      netAmountInput: formatMoneyInputValue(String(amount)),
+    })
+  }
+
+  const handleBilliardAmountChange = (slotId: string, value: string) => {
+    updateBilliardDraft(slotId, {
+      netAmountInput: formatMoneyInputValue(value),
     })
   }
 
@@ -651,6 +772,7 @@ export function NewMatchPage() {
     const confirmed = window.confirm(
       `Lưu trận ${gameType} với tổng tiền ${formatVnd(totalNetAmount, {
         showSign: false,
+        displayFormat,
       })}?`,
     )
 
@@ -696,7 +818,7 @@ export function NewMatchPage() {
           <Card>
             <CardHeader>
               <SectionTitle
-                description="TFT tự tính theo thứ hạng và penalty; Billiard nhập số tiền thủ công."
+                description="TFT tự tính theo top 1-8; Billiard nhập số tiền thủ công."
                 icon={<CircleDollarSign className="size-5" />}
                 step={1}
                 title="Chọn game"
@@ -708,7 +830,7 @@ export function NewMatchPage() {
                   {
                     value: 'TFT' as const,
                     label: 'TFT',
-                    helper: 'Tự tính tiền theo thứ hạng',
+                    helper: 'Tự tính tiền theo top',
                   },
                   {
                     value: 'BILLIARD' as const,
@@ -735,26 +857,15 @@ export function NewMatchPage() {
                 ))}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
-                <div className="space-y-2">
-                  <Label htmlFor="playedAt">Thời gian chơi</Label>
-                  <Input
-                    id="playedAt"
-                    type="datetime-local"
-                    value={playedAt}
-                    onChange={(event) => setPlayedAt(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="note">Ghi chú</Label>
-                  <textarea
-                    id="note"
-                    className={textareaClassName}
-                    placeholder="Ví dụ: kèo tối Chủ nhật"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="note">Ghi chú</Label>
+                <textarea
+                  id="note"
+                  className={textareaClassName}
+                  placeholder="Ví dụ: kèo tối Chủ nhật"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -825,7 +936,7 @@ export function NewMatchPage() {
                     </div>
 
                     <div className="space-y-3">
-                      {tftDrafts.map((draft, index) => (
+                      {tftFormDrafts.map((draft, index) => (
                         <div
                           key={draft.slotId}
                           className="rounded-lg border bg-background p-4 shadow-xs"
@@ -855,7 +966,7 @@ export function NewMatchPage() {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor={`${draft.slotId}-placement`}>
-                                Thứ hạng
+                                Top
                               </Label>
                               <select
                                 id={`${draft.slotId}-placement`}
@@ -868,41 +979,11 @@ export function NewMatchPage() {
                                 }
                               >
                                 {renderPlacementOptions(
-                                  tftParticipantCount,
                                   tftSelectedPlacements,
                                   draft.placement,
                                 )}
                               </select>
                             </div>
-                          </div>
-
-                          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                            <label className="flex items-center gap-3 rounded-md border bg-muted/25 px-3 py-2 text-sm">
-                              <input
-                                checked={draft.top2}
-                                className="size-4 accent-primary"
-                                type="checkbox"
-                                onChange={(event) =>
-                                  updateTftDraft(draft.slotId, {
-                                    top2: event.target.checked,
-                                  })
-                                }
-                              />
-                              <span>Dính top 2</span>
-                            </label>
-                            <label className="flex items-center gap-3 rounded-md border bg-muted/25 px-3 py-2 text-sm">
-                              <input
-                                checked={draft.top8}
-                                className="size-4 accent-primary"
-                                type="checkbox"
-                                onChange={(event) =>
-                                  updateTftDraft(draft.slotId, {
-                                    top8: event.target.checked,
-                                  })
-                                }
-                              />
-                              <span>Dính top 8</span>
-                            </label>
                           </div>
                         </div>
                       ))}
@@ -945,12 +1026,13 @@ export function NewMatchPage() {
                             <Input
                               id={`${draft.slotId}-amount`}
                               inputMode="text"
-                              placeholder="50k, -50k, 50.000"
+                              placeholder="50,000 hoặc -50,000"
                               value={draft.netAmountInput}
                               onChange={(event) =>
-                                updateBilliardDraft(draft.slotId, {
-                                  netAmountInput: event.target.value,
-                                })
+                                handleBilliardAmountChange(
+                                  draft.slotId,
+                                  event.target.value,
+                                )
                               }
                             />
                           </div>
@@ -1024,7 +1106,7 @@ export function NewMatchPage() {
                         {getTftRuleCode(tftParticipantCount)}
                       </Badge>
                       <p className="text-sm">
-                        Penalty top2/top8:{' '}
+                        Penalty tự tính từ top 2/top 8:{' '}
                         <MoneyText value={TFT_PENALTY_AMOUNT} showSign={false} />
                       </p>
                     </div>
@@ -1032,7 +1114,7 @@ export function NewMatchPage() {
                     <div className="mt-2 space-y-2">
                       <Badge variant="secondary">Nhập tiền thủ công</Badge>
                       <p className="text-sm text-muted-foreground">
-                        Hỗ trợ nhập 50k, -50k, 50.000 hoặc 50000.
+                        Hỗ trợ nhập 50k, -50k, 50,000 hoặc 50000.
                       </p>
                     </div>
                   )}
@@ -1104,7 +1186,7 @@ export function NewMatchPage() {
               ) : (
                 <EmptyState
                   title="Chưa có bảng xem trước"
-                  description="Bảng xem trước sẽ tự hiện khi đủ người chơi, thứ hạng hoặc số tiền hợp lệ."
+                  description="Bảng xem trước sẽ tự hiện khi đủ người chơi, top hoặc số tiền hợp lệ."
                   icon={<Calculator className="size-5" />}
                 />
               )}

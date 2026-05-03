@@ -12,8 +12,8 @@ npm run test
 
 Kỳ vọng:
 
-- `formatVnd(100000)` trả `+100.000 ₫`.
-- `parseMoneyInput` parse được `50k`, `-50k`, `50.000`, `50000`, `50.000 ₫`.
+- `formatVnd(100000)` trả `+100` theo định dạng mặc định.
+- `parseMoneyInput` parse được `50k`, `-50k`, `50,000`, `50.000`, `50000`, `50.000 ₫`.
 - `calculateTftResults` trả đúng kết quả TFT 3 người và 4 người.
 - `validateZeroSum` trả `true` khi tổng `netAmount = 0`, trả `false` khi lệch tổng.
 
@@ -21,71 +21,87 @@ Kỳ vọng:
 
 ### Case 1 - Không penalty
 
-- Player A hạng 1.
-- Player B hạng 2.
-- Player C hạng 3.
+- Player A top 1.
+- Player B top 3.
+- Player C top 4.
 
 Expected:
 
-- A `+100.000 ₫`
-- B `-50.000 ₫`
-- C `-50.000 ₫`
+- A `+100`
+- B `-50`
+- C `-50`
 - Tổng `0`
 
-### Case 2 - B dính top2, C dính top8
+### Case 2 - Tự dính top 2/top 8
 
 - 3 người.
-- B dính top2.
-- C dính top8.
+- Player A top 1.
+- Player B top 2.
+- Player C top 8.
 
 Expected:
 
-- A `+120.000 ₫`
-- B `-60.000 ₫`
-- C `-60.000 ₫`
+- A `+120`
+- B `-60`
+- C `-60`
+- Tổng `0`
+
+### Case 3 - Người nhất nhóm dính top 2
+
+- Player A top 2.
+- Player B top 3.
+- Player C top 8.
+
+Expected:
+
+- A `+110`
+- B `-50`
+- C `-60`
 - Tổng `0`
 
 ## TFT 4 Người
 
 ### Case 1 - Không penalty
 
-- Player A hạng 1.
-- Player B hạng 2.
-- Player C hạng 3.
-- Player D hạng 4.
+- Player A top 1.
+- Player B top 3.
+- Player C top 4.
+- Player D top 5.
 
 Expected:
 
-- A `+70.000 ₫`
-- B `+30.000 ₫`
-- C `-50.000 ₫`
-- D `-50.000 ₫`
+- A `+70`
+- B `+30`
+- C `-50`
+- D `-50`
 - Tổng `0`
 
-### Case 2 - B dính top2, D dính top8
+### Case 2 - Tự dính top 2/top 8
 
 - 4 người.
-- B dính top2.
-- D dính top8.
+- Player A top 1.
+- Player B top 2.
+- Player C top 3.
+- Player D top 8.
 
 Expected:
 
-- A `+90.000 ₫`
-- B `+20.000 ₫`
-- C `-50.000 ₫`
-- D `-60.000 ₫`
+- A `+90`
+- B `+20`
+- C `-50`
+- D `-60`
 - Tổng `0`
 
 ## Billiard
 
-- Player A `+50.000 ₫`.
-- Player B `-50.000 ₫`.
+- Player A `+50`.
+- Player B `-50`.
 
 Expected:
 
 - Tổng `0`.
 - App cho lưu khi đủ session, Supabase env và network ổn định.
-- Nếu đổi B thành `-40.000 ₫`, app không cho lưu vì tổng lệch `+10.000 ₫`.
+- Nếu đổi B thành `-40`, app không cho lưu vì tổng lệch `+10`.
 
 ## Void
 
