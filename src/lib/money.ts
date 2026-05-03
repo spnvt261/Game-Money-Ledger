@@ -26,10 +26,25 @@ export function formatVnd(
 }
 
 export function parseMoneyInput(value: string) {
-  const normalized = value.replace(/[^\d-]/g, '')
-  if (!normalized || normalized === '-') {
+  const compactValue = value.trim().toLowerCase().replace(/\s+/g, '')
+
+  if (!compactValue || compactValue === '-' || compactValue === '+') {
     return 0
   }
 
-  return Number.parseInt(normalized, 10)
+  const sign = compactValue.startsWith('-') ? -1 : 1
+  const unsignedValue = compactValue.replace(/^[+-]/, '')
+  const usesThousandsSuffix = unsignedValue.endsWith('k')
+  const numberText = unsignedValue
+    .replace(/k$/, '')
+    .replace(/vnd|₫|đ/g, '')
+    .replace(/[.,]/g, '')
+    .replace(/[^\d]/g, '')
+
+  if (!numberText) {
+    return 0
+  }
+
+  const amount = Number.parseInt(numberText, 10)
+  return sign * (usesThousandsSuffix ? amount * 1_000 : amount)
 }

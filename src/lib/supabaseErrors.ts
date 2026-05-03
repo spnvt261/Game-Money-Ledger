@@ -70,6 +70,37 @@ export function handleSupabaseError(
     return 'Không tìm thấy người chơi cần cập nhật.'
   }
 
+  if (normalizedMessage.includes('payload must be a json object')) {
+    return 'Payload tạo trận không hợp lệ.'
+  }
+
+  if (normalizedMessage.includes('invalid game_type')) {
+    return 'Loại game không hợp lệ. Chỉ hỗ trợ TFT hoặc BILLIARD.'
+  }
+
+  if (normalizedMessage.includes('participants must not contain duplicate players')) {
+    return 'Danh sách người chơi không được trùng.'
+  }
+
+  if (normalizedMessage.includes('all participants must be active players')) {
+    return 'Tất cả người chơi trong trận phải đang hoạt động.'
+  }
+
+  if (normalizedMessage.includes('tft matches require 3 or 4 participants')) {
+    return 'TFT chỉ hỗ trợ trận 3 hoặc 4 người.'
+  }
+
+  if (
+    normalizedMessage.includes('tft participants require placement') ||
+    normalizedMessage.includes('tft placements must be unique')
+  ) {
+    return 'Thứ hạng TFT phải đủ, nằm trong số người chơi và không được trùng.'
+  }
+
+  if (normalizedMessage.includes('total net_amount must equal 0')) {
+    return 'Tổng tiền của trận phải bằng 0 trước khi lưu.'
+  }
+
   if (error.code === '28000') {
     return 'Phiên hoặc admin key không hợp lệ. Vui lòng đăng nhập lại.'
   }
