@@ -1,0 +1,14 @@
+-- Dev helper for configuring the admin key hash.
+-- Do not commit or store a real raw admin key.
+--
+-- 1. Generate a bcrypt hash:
+--    select crypt('CHANGE_ME_ADMIN_KEY', gen_salt('bf'));
+--
+-- 2. Store the generated hash in configuration:
+--    insert into public.configuration (key, value)
+--    values (
+--      'admin_key_hash',
+--      jsonb_build_object('hash', crypt('CHANGE_ME_ADMIN_KEY', gen_salt('bf')))
+--    )
+--    on conflict (key) do update
+--    set value = excluded.value;
