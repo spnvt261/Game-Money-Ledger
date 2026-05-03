@@ -535,7 +535,7 @@ export function PlayersPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Players"
+        eyebrow="Người chơi"
         title="Người chơi"
         description="Quản lý hồ sơ người chơi, trạng thái hoạt động và số dư hiện tại trong ledger."
         actions={

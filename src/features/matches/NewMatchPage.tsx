@@ -666,7 +666,7 @@ export function NewMatchPage() {
   const canAddBilliardParticipant = billiardDrafts.length < activePlayers.length
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 pb-24 md:pb-0">
       {successMessage ? (
         <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-lg">
           <CheckCircle2 className="mr-2 inline size-4" />
@@ -675,7 +675,7 @@ export function NewMatchPage() {
       ) : null}
 
       <PageHeader
-        eyebrow="New match"
+        eyebrow="Tạo trận"
         title="Tạo trận mới"
         description="Ghi kết quả TFT hoặc Billiard, kiểm tra tổng tiền bằng 0 rồi lưu qua RPC create_match."
         actions={
@@ -696,7 +696,7 @@ export function NewMatchPage() {
           <Card>
             <CardHeader>
               <SectionTitle
-                description="TFT tự tính theo thứ hạng và penalty; Billiard nhập net_amount thủ công."
+                description="TFT tự tính theo thứ hạng và penalty; Billiard nhập số tiền thủ công."
                 icon={<CircleDollarSign className="size-5" />}
                 step={1}
                 title="Chọn game"
@@ -833,7 +833,7 @@ export function NewMatchPage() {
                           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px]">
                             <div className="space-y-2">
                               <Label htmlFor={`${draft.slotId}-player`}>
-                                Player {index + 1}
+                                Người chơi {index + 1}
                               </Label>
                               <select
                                 id={`${draft.slotId}-player`}
@@ -917,8 +917,8 @@ export function NewMatchPage() {
                       >
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto] lg:items-end">
                           <div className="space-y-2">
-                            <Label htmlFor={`${draft.slotId}-player`}>
-                              Player {index + 1}
+                             <Label htmlFor={`${draft.slotId}-player`}>
+                              Người chơi {index + 1}
                             </Label>
                             <select
                               id={`${draft.slotId}-player`}
@@ -940,7 +940,7 @@ export function NewMatchPage() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor={`${draft.slotId}-amount`}>
-                              Net amount
+                              Số tiền
                             </Label>
                             <Input
                               id={`${draft.slotId}-amount`}
@@ -1008,7 +1008,7 @@ export function NewMatchPage() {
           <Card>
             <CardHeader>
               <SectionTitle
-                description="Kiểm tra kết quả đã nhập và tổng net_amount trước khi lưu."
+                description="Kiểm tra kết quả đã nhập và tổng tiền trước khi lưu."
                 icon={<Calculator className="size-5" />}
                 step={3}
                 title="Nhập kết quả"
@@ -1017,7 +1017,7 @@ export function NewMatchPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-lg border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Rule/input</p>
+                  <p className="text-sm text-muted-foreground">Luật và cách nhập</p>
                   {gameType === 'TFT' ? (
                     <div className="mt-2 space-y-2">
                       <Badge variant="secondary">
@@ -1030,7 +1030,7 @@ export function NewMatchPage() {
                     </div>
                   ) : (
                     <div className="mt-2 space-y-2">
-                      <Badge variant="secondary">manual_net_amount</Badge>
+                      <Badge variant="secondary">Nhập tiền thủ công</Badge>
                       <p className="text-sm text-muted-foreground">
                         Hỗ trợ nhập 50k, -50k, 50.000 hoặc 50000.
                       </p>
@@ -1074,7 +1074,7 @@ export function NewMatchPage() {
                 description="Người nhận tiền nằm trên, người mất tiền nằm dưới."
                 icon={<Trophy className="size-5" />}
                 step={4}
-                title="Preview & lưu"
+                title="Xem trước & lưu"
               />
             </CardHeader>
             <CardContent className="space-y-5">
@@ -1103,8 +1103,8 @@ export function NewMatchPage() {
                 </>
               ) : (
                 <EmptyState
-                  title="Chưa có preview"
-                  description="Preview sẽ tự hiện khi đủ người chơi, thứ hạng hoặc net_amount hợp lệ."
+                  title="Chưa có bảng xem trước"
+                  description="Bảng xem trước sẽ tự hiện khi đủ người chơi, thứ hạng hoặc số tiền hợp lệ."
                   icon={<Calculator className="size-5" />}
                 />
               )}
@@ -1120,6 +1120,19 @@ export function NewMatchPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.25rem)] z-30 border-y bg-background/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Tổng cộng</p>
+            <MoneyText value={totalNetAmount} className="text-base font-semibold" />
+          </div>
+          <Button disabled={saveDisabled} onClick={handleSave}>
+            <Save />
+            {createMatchMutation.isPending ? 'Đang lưu' : 'Lưu trận'}
+          </Button>
         </div>
       </div>
     </div>

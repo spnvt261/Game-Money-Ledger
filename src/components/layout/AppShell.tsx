@@ -72,6 +72,12 @@ export function AppShell() {
     : null
 
   const handleLogout = () => {
+    const confirmed = window.confirm('Đăng xuất khỏi phiên quản trị hiện tại?')
+
+    if (!confirmed) {
+      return
+    }
+
     logout()
     navigate('/login', { replace: true })
   }
@@ -86,7 +92,7 @@ export function AppShell() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold">{appConfig.appName}</p>
-              <p className="text-xs text-muted-foreground">Ledger nội bộ</p>
+              <p className="text-xs text-muted-foreground">Sổ tiền nội bộ</p>
             </div>
           </div>
 
@@ -152,7 +158,7 @@ export function AppShell() {
                 </Badge>
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   <LogOut />
-                  Logout
+                  Đăng xuất
                 </Button>
               </div>
             </div>

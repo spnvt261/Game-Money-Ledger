@@ -237,7 +237,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Dashboard"
+        eyebrow="Tổng quan"
         title="Tổng quan tiền game"
         description="Theo dõi số dư ledger, người chơi đang lời/lỗ và tổng tiền đã luân chuyển."
         actions={
@@ -253,7 +253,7 @@ export function DashboardPage() {
       {offlineWithoutCache ? (
         <EmptyState
           title="Chưa có dữ liệu offline"
-          description="Dashboard cần tải dữ liệu Supabase ít nhất một lần. Kiểm tra kết nối mạng rồi thử lại."
+          description="Màn tổng quan cần tải dữ liệu Supabase ít nhất một lần. Kiểm tra kết nối mạng rồi thử lại."
           icon={<WifiOff className="size-5" />}
           action={
             <Button variant="outline" onClick={retry}>
@@ -317,7 +317,7 @@ export function DashboardPage() {
             <StatCard
               label="Tổng trận đã ghi"
               value={numberFormatter.format(summary.totalMatches)}
-              helper={`${numberFormatter.format(summary.totalVoidedMatches)} trận đã void.`}
+              helper={`${numberFormatter.format(summary.totalVoidedMatches)} trận đã hủy.`}
               icon={<History className="size-5" />}
               tone="indigo"
             />

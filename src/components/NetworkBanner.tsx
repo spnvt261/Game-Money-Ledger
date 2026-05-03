@@ -13,7 +13,7 @@ export function NetworkBanner({ status, className }: NetworkBannerProps) {
     return (
       <div
         className={cn(
-          'border-b border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive',
+          'border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive',
           className,
         )}
       >
@@ -32,7 +32,7 @@ export function NetworkBanner({ status, className }: NetworkBannerProps) {
     return (
       <div
         className={cn(
-          'border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800',
+          'border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800',
           className,
         )}
       >

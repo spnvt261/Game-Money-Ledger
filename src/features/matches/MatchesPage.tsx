@@ -78,11 +78,11 @@ function GameBadge({ gameType }: { gameType: GameType }) {
 
 function StatusBadge({ status }: { status: MatchRecordStatus }) {
   return status === 'COMPLETED' ? (
-    <Badge variant="success">Completed</Badge>
+    <Badge variant="success">Đã ghi</Badge>
   ) : (
     <Badge variant="warning">
       <RotateCcw />
-      Voided
+      Đã hủy
     </Badge>
   )
 }
@@ -207,9 +207,9 @@ export function MatchesPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Matches"
+        eyebrow="Lịch sử"
         title="Lịch sử trận"
-        description="Danh sách trận đã ghi, trạng thái void và tổng tiền luân chuyển từng trận."
+        description="Danh sách trận đã ghi, trạng thái hủy và tổng tiền luân chuyển từng trận."
         actions={
           <Button asChild>
             <Link to="/matches/new">
@@ -251,8 +251,8 @@ export function MatchesPage() {
               onChange={(event) => setStatus(event.target.value as StatusFilter)}
             >
               <option value="ALL">Tất cả trạng thái</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="VOIDED">Voided</option>
+              <option value="COMPLETED">Đã ghi</option>
+              <option value="VOIDED">Đã hủy</option>
             </select>
             <div className="relative">
               <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -335,7 +335,7 @@ export function MatchesPage() {
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle>Match history</CardTitle>
+                <CardTitle>Danh sách trận</CardTitle>
                 <CardDescription>
                   Đang hiển thị {filteredMatches.length} trận, sort theo ngày chơi mới nhất.
                 </CardDescription>

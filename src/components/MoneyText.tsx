@@ -1,20 +1,40 @@
 import { cn } from '@/lib/utils'
 import { formatVnd } from '@/lib/money'
 
+type MoneyTextVariant = 'auto' | 'positive' | 'negative' | 'neutral'
+
 interface MoneyTextProps {
   value: number
   className?: string
   showSign?: boolean
+  variant?: MoneyTextVariant
 }
 
-export function MoneyText({ value, className, showSign = true }: MoneyTextProps) {
+function resolveVariant(value: number, variant: MoneyTextVariant) {
+  if (variant !== 'auto') {
+    return variant
+  }
+
+  if (value > 0) return 'positive'
+  if (value < 0) return 'negative'
+  return 'neutral'
+}
+
+export function MoneyText({
+  value,
+  className,
+  showSign = true,
+  variant = 'auto',
+}: MoneyTextProps) {
+  const resolvedVariant = resolveVariant(value, variant)
+
   return (
     <span
       className={cn(
         'tabular-nums',
-        value > 0 && 'text-emerald-700',
-        value < 0 && 'text-rose-700',
-        value === 0 && 'text-muted-foreground',
+        resolvedVariant === 'positive' && 'text-emerald-700',
+        resolvedVariant === 'negative' && 'text-rose-700',
+        resolvedVariant === 'neutral' && 'text-muted-foreground',
         className,
       )}
     >

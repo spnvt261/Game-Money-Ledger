@@ -1,5 +1,6 @@
 export const appConfig = {
   appName: import.meta.env.VITE_APP_NAME || 'Game Money Ledger',
+  appVersion: import.meta.env.VITE_APP_VERSION || '0.0.0',
   sessionStorageKey:
     import.meta.env.VITE_SESSION_STORAGE_KEY || 'game_money_ledger_session',
   networkPingIntervalMs: Number(

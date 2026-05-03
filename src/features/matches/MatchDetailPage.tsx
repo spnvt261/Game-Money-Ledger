@@ -105,11 +105,11 @@ function GameBadge({ gameType }: { gameType: GameType }) {
 
 function StatusBadge({ status }: { status: MatchRecordStatus }) {
   return status === 'COMPLETED' ? (
-    <Badge variant="success">Completed</Badge>
+    <Badge variant="success">Đã ghi</Badge>
   ) : (
     <Badge variant="warning">
       <RotateCcw />
-      Voided
+      Đã hủy
     </Badge>
   )
 }
@@ -268,11 +268,11 @@ function GeneralInfo({ detail }: { detail: MatchDetail }) {
           {detail.status === 'VOIDED' ? (
             <>
               <div>
-                <p className="text-sm text-muted-foreground">Voided at</p>
+                <p className="text-sm text-muted-foreground">Thời gian hủy</p>
                 <p className="mt-1 font-medium">{formatDateTime(detail.voidedAt)}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Void reason</p>
+                <p className="text-sm text-muted-foreground">Lý do hủy</p>
                 <p className="mt-1 text-sm leading-6">
                   {detail.voidReason || 'Không có lý do hủy'}
                 </p>
@@ -307,7 +307,9 @@ function GeneralInfo({ detail }: { detail: MatchDetail }) {
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-sm text-muted-foreground">Input mode</p>
               <p className="mt-1 font-semibold">
-                {inputMode ?? 'manual_net_amount'}
+                {inputMode === 'manual_net_amount' || !inputMode
+                  ? 'Nhập tiền thủ công'
+                  : inputMode}
               </p>
             </div>
           )}
@@ -335,7 +337,7 @@ function ParticipantsSection({ detail }: { detail: MatchDetail }) {
                 {detail.gameType === 'TFT' ? <TableHead>Placement</TableHead> : null}
                 {detail.gameType === 'TFT' ? <TableHead>Penalty</TableHead> : null}
                 <TableHead>Breakdown</TableHead>
-                <TableHead className="text-right">Net amount</TableHead>
+                <TableHead className="text-right">Số tiền</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -560,6 +562,7 @@ function VoidDialog({
             <Label htmlFor="voidReason">Lý do hủy</Label>
             <textarea
               id="voidReason"
+              autoFocus
               className={textareaClassName}
               placeholder="Ví dụ: nhập nhầm thứ hạng, ghi sai số tiền..."
               value={reason}
@@ -574,7 +577,7 @@ function VoidDialog({
             <ShieldAlert className="size-4" />
             <AlertTitle>Xác nhận nghiệp vụ</AlertTitle>
             <AlertDescription>
-              Trận sẽ chuyển sang VOIDED. Một trận đã void không thể void lần thứ hai.
+              Trận sẽ chuyển sang trạng thái đã hủy. Một trận đã hủy không thể hủy lần thứ hai.
             </AlertDescription>
           </Alert>
 
@@ -632,7 +635,7 @@ export function MatchDetailPage() {
     }
 
     if (detail.status !== 'COMPLETED') {
-      return 'Chỉ trận Completed mới có thể hủy. Trận đã void không thể hủy lần nữa.'
+      return 'Chỉ trận đã ghi mới có thể hủy. Trận đã hủy không thể hủy lần nữa.'
     }
 
     return null
@@ -725,7 +728,7 @@ export function MatchDetailPage() {
       ) : null}
 
       <PageHeader
-        eyebrow="Match detail"
+        eyebrow="Chi tiết"
         title="Chi tiết trận"
         description={`Match ID: ${matchId || 'không xác định'}`}
         actions={
@@ -775,7 +778,7 @@ export function MatchDetailPage() {
           {detail.status === 'VOIDED' ? (
             <Alert>
               <RotateCcw className="size-4" />
-              <AlertTitle>Trận đã được void</AlertTitle>
+              <AlertTitle>Trận đã được hủy</AlertTitle>
               <AlertDescription>
                 Trận vẫn được giữ trong lịch sử. Ledger VOID đã đảo dấu các dòng MATCH
                 để số dư người chơi quay lại như trước trận.
@@ -807,7 +810,7 @@ export function MatchDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Tổng tiền</CardTitle>
-                <CardDescription>Positive / negative</CardDescription>
+                <CardDescription>Tiền nhận / tiền mất</CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
                 <div className="flex items-center justify-between gap-3">
