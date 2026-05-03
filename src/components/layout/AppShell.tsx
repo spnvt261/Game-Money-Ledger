@@ -4,16 +4,26 @@ import {
   Banknote,
   History,
   LayoutDashboard,
+  LogOut,
   PlusCircle,
   Settings,
+  ShieldCheck,
   UsersRound,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
-import { NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
+import {
+  NavLink,
+  Outlet,
+  matchPath,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 
+import { NetworkBanner } from '@/components/NetworkBanner'
 import { NetworkStatusBadge } from '@/components/NetworkStatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/useAuth'
 import { appConfig } from '@/lib/env'
 import { useNetworkStatus } from '@/lib/useNetworkStatus'
 import { cn } from '@/lib/utils'
@@ -45,13 +55,26 @@ function getPageTitle(pathname: string) {
   if (pathname.startsWith('/matches/new')) return 'Tạo trận mới'
   if (matchPath('/matches/:id', pathname)) return 'Chi tiết trận'
 
-  return navItems.find((item) => isNavItemActive(pathname, item))?.label ?? 'Không tìm thấy'
+  return (
+    navItems.find((item) => isNavItemActive(pathname, item))?.label ??
+    'Không tìm thấy'
+  )
 }
 
 export function AppShell() {
   const location = useLocation()
+  const navigate = useNavigate()
   const network = useNetworkStatus()
+  const { logout, session } = useAuth()
   const todayLabel = format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })
+  const expiresAtLabel = session
+    ? format(new Date(session.expiresAt), 'dd/MM/yyyy HH:mm')
+    : null
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,10 +117,14 @@ export function AppShell() {
             <div className="rounded-lg border bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium">Phiên quản trị</span>
-                <Badge variant="outline">Cục bộ</Badge>
+                <Badge variant="success">
+                  <ShieldCheck />
+                  Admin
+                </Badge>
               </div>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                Chưa có session Supabase hợp lệ.
+                Token được lưu cục bộ và hết hạn lúc{' '}
+                {expiresAtLabel ?? 'không xác định'}.
               </p>
             </div>
           </div>
@@ -119,13 +146,19 @@ export function AppShell() {
                   status={network.status}
                   latencyMs={network.latencyMs}
                 />
-                <Badge variant="secondary">Chưa đăng nhập</Badge>
-                <Button asChild variant="outline" size="sm">
-                  <NavLink to="/login">Mở đăng nhập</NavLink>
+                <Badge variant="success">
+                  <ShieldCheck />
+                  Admin
+                </Badge>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut />
+                  Logout
                 </Button>
               </div>
             </div>
           </header>
+
+          <NetworkBanner status={network.status} />
 
           <main className="flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 md:pb-8">
             <div className="mx-auto w-full max-w-7xl">

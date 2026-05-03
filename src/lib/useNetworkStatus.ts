@@ -25,6 +25,10 @@ export function useNetworkStatus() {
   const [snapshot, setSnapshot] = useState<NetworkSnapshot>(initialStatus)
 
   const checkNow = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSnapshot({
         status: 'offline',
@@ -105,6 +109,9 @@ export function useNetworkStatus() {
     () => ({
       ...snapshot,
       isOnline: snapshot.status !== 'offline',
+      isOffline: snapshot.status === 'offline',
+      isSlow: snapshot.status === 'slow',
+      canWrite: snapshot.status !== 'offline',
       checkNow,
     }),
     [checkNow, snapshot],
